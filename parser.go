@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/pkg/errors"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -357,6 +358,27 @@ type LockFile map[string]struct {
 	Integrity    string            `json:"integrity,omitempty"`
 	Resolved     string            `json:"resolved,omitempty"`
 	Version      string            `json:"version,omitempty"`
+}
+
+// RootElement returns elements which not be referenced. The result list is sorted.
+func (f LockFile) RootElement() []string {
+	keys := map[string]struct{}{}
+	for s := range f {
+		keys[s] = struct{}{}
+	}
+	for _, v := range f {
+		for k, v := range v.Dependencies {
+			delete(keys, k+"@"+v)
+		}
+	}
+	var rs []string
+	for s := range keys {
+		rs = append(rs, s)
+	}
+	sort.Slice(rs, func(i, j int) bool {
+		return rs[i] < rs[j]
+	})
+	return rs
 }
 
 type _ParseErr string

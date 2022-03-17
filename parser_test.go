@@ -33,7 +33,7 @@ func TestName(t *testing.T) {
 
 func TestName2(t *testing.T) {
 	r, e := ParseLockFileData([]byte(y))
-	t.Log(r, e)
+	t.Log(r.RootElement(), e)
 	if e != nil {
 		panic(e)
 	}
