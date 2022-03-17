@@ -351,3 +351,49 @@ func (p *_Parser) parse(indent int) interface{} {
 func isValidPropValueToken(token _Token) bool {
 	return token.kind == _TokenBoolean || token.kind == _TokenString || token.kind == _TokenNumber
 }
+
+type LockFile map[string]struct {
+	Dependencies map[string]string `json:"dependencies,omitempty"`
+	Integrity    string            `json:"integrity,omitempty"`
+	Resolved     string            `json:"resolved,omitempty"`
+	Version      string            `json:"version,omitempty"`
+}
+
+type _ParseErr string
+
+func (t _ParseErr) Error() string {
+	return fmt.Sprintf("ParseError: %s", string(t))
+}
+
+func ParseLockFileData(data []byte) (lf LockFile, err error) {
+	defer func() {
+		if e := recover(); e != nil {
+			switch v := e.(type) {
+			case error:
+				err = v
+			case string:
+				err = _ParseErr(v)
+			case fmt.Stringer:
+				err = _ParseErr(v.String())
+			default:
+				err = _ParseErr("Unknown err")
+			}
+		}
+	}()
+	tokenizer := _Tokenizer{}
+	if e := tokenizer.tokenize(string(data)); e != nil {
+		return nil, e
+	}
+	parser := _Parser{
+		tokens: tokenizer.tokens,
+	}
+	parser.next()
+	data, e := json.Marshal(parser.parse(0))
+	if e != nil {
+		return nil, errors.Wrap(e, "parse failed")
+	}
+	if e := json.Unmarshal(data, &lf); e != nil {
+		return nil, errors.Wrap(e, "parse failed")
+	}
+	return
+}

@@ -30,3 +30,11 @@ func TestName(t *testing.T) {
 	}
 	fmt.Println(string(b))
 }
+
+func TestName2(t *testing.T) {
+	r, e := ParseLockFileData([]byte(y))
+	t.Log(r, e)
+	if e != nil {
+		panic(e)
+	}
+}
