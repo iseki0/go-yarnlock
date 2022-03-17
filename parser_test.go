@@ -11,11 +11,11 @@ import (
 var y string
 
 func TestName(t *testing.T) {
-	tokenizer := new(Tokenizer)
+	tokenizer := new(_Tokenizer)
 	if e := tokenizer.tokenize(y); e != nil {
 		panic(e)
 	}
-	parser := Parser{
+	parser := _Parser{
 		fileLoc:  "yarn.lock",
 		token:    tokenizer.tokens[0],
 		tokens:   tokenizer.tokens,

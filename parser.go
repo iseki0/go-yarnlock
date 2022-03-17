@@ -9,96 +9,96 @@ import (
 	"strings"
 )
 
-type ValueType int
+type _ValueType int
 
 const (
-	TokenValueVoid ValueType = iota
-	TokenValueInt
-	TokenValueString
-	TokenValueBool
+	_TokenValueVoid _ValueType = iota
+	_TokenValueInt
+	_TokenValueString
+	_TokenValueBool
 )
 
-type TokenType int
+type _TokenKind int
 
 const (
-	TokenBoolean TokenType = iota + 1
-	TokenString
-	TokenIdentifier
-	TokenEOF
-	TokenColon
-	TokenNewLine
-	TokenComment
-	TokenIndent
-	TokenInvalid
-	TokenNumber
-	TokenComma
+	_TokenBoolean _TokenKind = iota + 1
+	_TokenString
+	_TokenIdentifier
+	_TokenEOF
+	_TokenColon
+	_TokenNewLine
+	_TokenComment
+	_TokenIndent
+	_TokenInvalid
+	_TokenNumber
+	_TokenComma
 )
 
-type Token struct {
-	Line  int
-	Col   int
-	Type  TokenType
-	Value TokenValue
+type _Token struct {
+	line  int
+	col   int
+	kind  _TokenKind
+	value _TokenValue
 }
 
-type TokenValue struct {
-	Int       int
-	String    string
-	Bool      bool
-	Valid     bool
-	ValueType ValueType
+type _TokenValue struct {
+	vInt    int
+	vString string
+	vBool   bool
+	valid   bool
+	vType   _ValueType
 }
 
-func (t TokenValue) MarshalText() ([]byte, error) {
-	switch t.ValueType {
-	case TokenValueInt:
-		return []byte(strconv.Itoa(t.Int)), nil
-	case TokenValueBool:
-		return []byte(strconv.FormatBool(t.Bool)), nil
-	case TokenValueString:
-		return []byte(t.String), nil
+func (t _TokenValue) MarshalText() ([]byte, error) {
+	switch t.vType {
+	case _TokenValueInt:
+		return []byte(strconv.Itoa(t.vInt)), nil
+	case _TokenValueBool:
+		return []byte(strconv.FormatBool(t.vBool)), nil
+	case _TokenValueString:
+		return []byte(t.vString), nil
 	default:
 		return []byte("void"), nil
 	}
 }
 
-func (t *TokenValue) IsEmpty() bool {
-	return !t.Valid
+func (t *_TokenValue) IsEmpty() bool {
+	return !t.valid
 }
 
-func (t *Token) isString() bool {
-	return t.Value.ValueType == TokenValueString
+func (t *_Token) isString() bool {
+	return t.value.vType == _TokenValueString
 }
 
-type Tokenizer struct {
+type _Tokenizer struct {
 	lastNewLine bool
 	line        int
 	col         int
-	tokens      []Token
+	tokens      []_Token
 }
 
-func (t *Tokenizer) buildToken(tt TokenType, value interface{}) {
-	tk := Token{
-		Line:  t.line,
-		Col:   t.col,
-		Type:  tt,
-		Value: TokenValue{},
+func (t *_Tokenizer) buildToken(tt _TokenKind, value interface{}) {
+	tk := _Token{
+		line:  t.line,
+		col:   t.col,
+		kind:  tt,
+		value: _TokenValue{},
 	}
-	if tt == TokenComment || tt == TokenString {
-		tk.Value = TokenValue{String: value.(string), ValueType: TokenValueString}
-	} else if tt == TokenBoolean {
-		tk.Value = TokenValue{Bool: value.(bool), ValueType: TokenValueBool}
-	} else if tt == TokenNumber || tt == TokenIndent {
-		tk.Value = TokenValue{Int: value.(int), ValueType: TokenValueInt}
+	if tt == _TokenComment || tt == _TokenString {
+		tk.value = _TokenValue{vString: value.(string), vType: _TokenValueString}
+	} else if tt == _TokenBoolean {
+		tk.value = _TokenValue{vBool: value.(bool), vType: _TokenValueBool}
+	} else if tt == _TokenNumber || tt == _TokenIndent {
+		tk.value = _TokenValue{vInt: value.(int), vType: _TokenValueInt}
 	}
-	tk.Value.Valid = true
-	if tt == TokenInvalid {
+	tk.value.valid = true
+	if tt == _TokenInvalid {
 		panic(1)
 	}
 	t.tokens = append(t.tokens, tk)
 }
 
-func (t *Tokenizer) tokenize(input string) error {
+func (t *_Tokenizer) tokenize(input string) error {
 	for len(input) > 0 {
 		var chop = 0
 		if input[0] == '\n' || input[0] == '\r' {
@@ -108,7 +108,7 @@ func (t *Tokenizer) tokenize(input string) error {
 			}
 			t.line++
 			t.col = 0
-			t.buildToken(TokenNewLine, nil)
+			t.buildToken(_TokenNewLine, nil)
 		} else if input[0] == '#' {
 			chop++
 			var nextNewLine = strings.Index(input[chop:], "\n")
@@ -118,7 +118,7 @@ func (t *Tokenizer) tokenize(input string) error {
 			nextNewLine += chop // workaround for go haven't IndexN
 			val := input[chop:nextNewLine]
 			chop = nextNewLine
-			t.buildToken(TokenComment, val)
+			t.buildToken(_TokenComment, val)
 		} else if input[0] == ' ' {
 			if t.lastNewLine {
 				indentSize := 1
@@ -129,7 +129,7 @@ func (t *Tokenizer) tokenize(input string) error {
 					return errors.New("Invalid number of spaces")
 				} else {
 					chop = indentSize
-					t.buildToken(TokenIndent, indentSize/2)
+					t.buildToken(_TokenIndent, indentSize/2)
 				}
 			} else {
 				chop++
@@ -149,26 +149,26 @@ func (t *Tokenizer) tokenize(input string) error {
 			chop = i
 			var s string
 			if e := json.Unmarshal([]byte(val), &s); e != nil {
-				t.buildToken(TokenInvalid, nil)
+				t.buildToken(_TokenInvalid, nil)
 			} else {
-				t.buildToken(TokenString, s)
+				t.buildToken(_TokenString, s)
 			}
 		} else if input[0] >= '0' && input[0] <= '9' {
 			val := _numberPattern.FindString(input)
 			chop = len(val)
 			n, _ := strconv.Atoi(val)
-			t.buildToken(TokenNumber, n)
+			t.buildToken(_TokenNumber, n)
 		} else if strings.HasPrefix(input, "true") {
-			t.buildToken(TokenBoolean, true)
+			t.buildToken(_TokenBoolean, true)
 			chop = 4
 		} else if strings.HasSuffix(input, "false") {
-			t.buildToken(TokenBoolean, false)
+			t.buildToken(_TokenBoolean, false)
 			chop = 5
 		} else if input[0] == ':' {
-			t.buildToken(TokenColon, nil)
+			t.buildToken(_TokenColon, nil)
 			chop++
 		} else if input[0] == ',' {
-			t.buildToken(TokenComma, nil)
+			t.buildToken(_TokenComma, nil)
 			chop++
 		} else if _strPattern.MatchString(input) {
 			i := 0
@@ -180,12 +180,12 @@ func (t *Tokenizer) tokenize(input string) error {
 			}
 			name := input[:i]
 			chop = i
-			t.buildToken(TokenString, name)
+			t.buildToken(_TokenString, name)
 		} else {
-			t.buildToken(TokenInvalid, nil)
+			t.buildToken(_TokenInvalid, nil)
 		}
 		if chop == 0 {
-			t.buildToken(TokenInvalid, nil)
+			t.buildToken(_TokenInvalid, nil)
 		}
 		t.col += chop
 		t.lastNewLine = input[0] == '\n' || (input[0] == '\r' && input[1] == '\n')
@@ -194,7 +194,7 @@ func (t *Tokenizer) tokenize(input string) error {
 		}
 		input = input[chop:]
 	}
-	t.buildToken(TokenEOF, nil)
+	t.buildToken(_TokenEOF, nil)
 	return nil
 }
 
@@ -204,19 +204,19 @@ var _versionRegex = regexp.MustCompile("^yarn lockfile v(\\d+)$")
 
 const LockfileVersion = 1
 
-type Parser struct {
+type _Parser struct {
 	fileLoc  string
-	token    Token
-	tokens   []Token
+	token    _Token
+	tokens   []_Token
 	tokenPtr int
 	comments []string
 }
 
-func (p *Parser) onComment(token Token) {
+func (p *_Parser) onComment(token _Token) {
 	if !token.isString() {
 		panic("expected token value to be a string")
 	}
-	comment := strings.TrimSpace(token.Value.String)
+	comment := strings.TrimSpace(token.value.vString)
 
 	versionMatch := _versionRegex.FindStringSubmatch(comment)
 	if len(versionMatch) > 0 {
@@ -228,13 +228,13 @@ func (p *Parser) onComment(token Token) {
 	p.comments = append(p.comments, comment)
 }
 
-func (p *Parser) next() Token {
+func (p *_Parser) next() _Token {
 	if p.tokenPtr >= len(p.tokens) {
 		panic("No more tokens")
 	}
 	tk := p.tokens[p.tokenPtr]
 	p.tokenPtr++
-	if tk.Type == TokenComment {
+	if tk.kind == _TokenComment {
 		p.onComment(tk)
 		return p.next()
 	} else {
@@ -243,24 +243,24 @@ func (p *Parser) next() Token {
 	}
 }
 
-func (p *Parser) unexpected(msg string) {
+func (p *_Parser) unexpected(msg string) {
 	if msg == "" {
 		panic("Unexpected token")
 	} else {
-		panic(fmt.Sprintf("%s%d:%d in %s", msg, p.token.Line, p.token.Col, p.fileLoc))
+		panic(fmt.Sprintf("%s%d:%d in %s", msg, p.token.line, p.token.col, p.fileLoc))
 	}
 }
 
-func (p *Parser) expect(tt TokenType) {
-	if p.token.Type == tt {
+func (p *_Parser) expect(tt _TokenKind) {
+	if p.token.kind == tt {
 		p.next()
 	} else {
 		p.unexpected("")
 	}
 }
 
-func (p *Parser) eat(tt TokenType) bool {
-	if p.token.Type == tt {
+func (p *_Parser) eat(tt _TokenKind) bool {
+	if p.token.kind == tt {
 		p.next()
 		return true
 	} else {
@@ -268,66 +268,66 @@ func (p *Parser) eat(tt TokenType) bool {
 	}
 }
 
-func (p *Parser) parse(indent int) interface{} {
-	obj := map[TokenValue]interface{}{}
+func (p *_Parser) parse(indent int) interface{} {
+	obj := map[_TokenValue]interface{}{}
 	for {
 		propToken := p.token
-		if propToken.Type == TokenNewLine {
+		if propToken.kind == _TokenNewLine {
 			nextToken := p.next()
 			if indent == 0 {
 				// if we have 0 indentation then the next token doesn't matter
 				continue
 			}
-			if nextToken.Type != TokenIndent {
+			if nextToken.kind != _TokenIndent {
 				// if we have no indentation after a newline then we've gone down a level
 				break
 			}
-			if nextToken.Value.Int == indent {
+			if nextToken.value.vInt == indent {
 				// all is good, the indent is on our level
 				p.next()
 			} else {
 				// the indentation is less than our level
 				break
 			}
-		} else if propToken.Type == TokenIndent {
-			if propToken.Value.Int == indent {
+		} else if propToken.kind == _TokenIndent {
+			if propToken.value.vInt == indent {
 				p.next()
 			} else {
 				break
 			}
-		} else if propToken.Type == TokenEOF {
+		} else if propToken.kind == _TokenEOF {
 			break
-		} else if propToken.Type == TokenString {
+		} else if propToken.kind == _TokenString {
 			// property key
-			key := propToken.Value
+			key := propToken.value
 			if key.IsEmpty() {
 				panic("Expected a key")
 			}
-			keys := []TokenValue{key}
+			keys := []_TokenValue{key}
 			p.next()
 			// support multiple keys
-			for p.token.Type == TokenComma {
+			for p.token.kind == _TokenComma {
 				p.next() // skip comma
 
 				keyToken := p.token
-				if keyToken.Type != TokenString {
+				if keyToken.kind != _TokenString {
 					p.unexpected("Expected string")
 				}
 
-				key := keyToken.Value
+				key := keyToken.value
 				if key.IsEmpty() {
 					panic("Expected a key")
 				}
 				keys = append(keys, key)
 				p.next()
 			}
-			wasColon := p.token.Type == TokenColon
+			wasColon := p.token.kind == _TokenColon
 			if wasColon {
 				p.next()
 			}
 			if isValidPropValueToken(p.token) {
 				for _, key := range keys {
-					obj[key] = p.token.Value // 299
+					obj[key] = p.token.value // 299
 				}
 				p.next()
 			} else if wasColon {
@@ -335,7 +335,7 @@ func (p *Parser) parse(indent int) interface{} {
 				for _, key := range keys {
 					obj[key] = val
 				}
-				if indent != 0 && p.token.Type != TokenIndent {
+				if indent != 0 && p.token.kind != _TokenIndent {
 					break
 				}
 			} else {
@@ -348,6 +348,6 @@ func (p *Parser) parse(indent int) interface{} {
 	return obj
 }
 
-func isValidPropValueToken(token Token) bool {
-	return token.Type == TokenBoolean || token.Type == TokenString || token.Type == TokenNumber
+func isValidPropValueToken(token _Token) bool {
+	return token.kind == _TokenBoolean || token.kind == _TokenString || token.kind == _TokenNumber
 }
