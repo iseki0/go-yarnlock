@@ -354,10 +354,14 @@ func isValidPropValueToken(token _Token) bool {
 }
 
 type LockFile map[string]struct {
-	Dependencies map[string]string `json:"dependencies,omitempty"`
-	Integrity    string            `json:"integrity,omitempty"`
-	Resolved     string            `json:"resolved,omitempty"`
-	Version      string            `json:"version,omitempty"`
+	Name                 string            `json:"name,omitempty"`
+	Version              string            `json:"version,omitempty"`
+	UID                  string            `json:"uid,omitempty"`
+	Resolved             string            `json:"resolved,omitempty"`
+	Integrity            string            `json:"integrity,omitempty"`
+	Registry             string            `json:"registry,omitempty"`
+	Dependencies         map[string]string `json:"dependencies,omitempty"`
+	OptionalDependencies map[string]string `json:"optionalDependencies,omitempty"`
 }
 
 // RootElement returns elements which not be referenced. The result list is sorted.
