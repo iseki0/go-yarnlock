@@ -7,7 +7,7 @@ import (
 	"testing"
 )
 
-//go:embed yarn.lock
+//go:embed yarn.lock.for-test
 var y string
 
 func TestName(t *testing.T) {
