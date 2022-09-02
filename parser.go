@@ -3,11 +3,12 @@ package yarnlock
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/pkg/errors"
 	"regexp"
 	"sort"
 	"strconv"
 	"strings"
+
+	"github.com/pkg/errors"
 )
 
 type _ValueType int
@@ -353,7 +354,9 @@ func isValidPropValueToken(token _Token) bool {
 	return token.kind == _TokenBoolean || token.kind == _TokenString || token.kind == _TokenNumber
 }
 
-type LockFile map[string]struct {
+type LockFile map[string]LockFileEntry
+
+type LockFileEntry struct {
 	Name                 string            `json:"name,omitempty"`
 	Version              string            `json:"version,omitempty"`
 	UID                  string            `json:"uid,omitempty"`
